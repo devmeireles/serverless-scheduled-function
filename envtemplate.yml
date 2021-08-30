@@ -1,0 +1,5 @@
+default:
+  awsLocalDynammoAccessKey: ""
+  awsLocalDynammoSecretAccessKey: ""
+  IGDBCLientKey: ""
+  IGDBCLientSecret: ""

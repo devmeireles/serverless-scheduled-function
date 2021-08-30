@@ -1,0 +1,54 @@
+service: goldenbitsage-database
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  region: sa-east-1
+  GAME_TABLE_NAME: ${self:custom.stage}-goldenbitsage-game
+  COMPANIES_TABLE_NAME: ${self:custom.stage}-goldenbitsage-companies
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.region}
+
+resources:
+  Resources:
+    GameTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.GAME_TABLE_NAME}
+    CompaniesTable:
+      Type: "AWS::DynamoDB::Table"
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.COMPANIES_TABLE_NAME}
+  Outputs:
+    GameTableArn:
+      Value:
+        Fn::GetAtt:
+          - GameTable
+          - Arn
+      Export:
+        Name: ${self:custom.stage}-GameTableArn
+    CompaniesTableArn:
+      Value:
+        Fn::GetAtt:
+          - CompaniesTable
+          - Arn
+      Export:
+        Name: ${self:custom.stage}-CompaniesTableArn

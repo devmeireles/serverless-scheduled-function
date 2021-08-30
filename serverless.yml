@@ -1,0 +1,66 @@
+service: goldenbitsage-api
+
+plugins:
+  - serverless-bundle # Package our functions with Webpack
+  - serverless-offline # Enables offline run
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  region: sa-east-1
+  environment: ${file(./env.yml):${self:custom.stage}, file(./env.yml):default}
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: ${self:custom.region}
+
+  environment:
+    # DEFAULTS
+    stage: ${self:custom.stage}
+    region: ${self:custom.region}
+    awsLocalDynammoAccessKey: ${self:custom.environment.awsLocalDynammoAccessKey}
+    awsLocalDynammoSecretAccessKey: ${self:custom.environment.awsLocalDynammoSecretAccessKey}
+    IGDBCLientKey: ${self:custom.environment.IGDBCLientKey}
+    IGDBCLientSecret: ${self:custom.environment.IGDBCLientSecret}
+
+    GAME_TABLE: ${file(./database/serverless.yml):custom.GAME_TABLE_NAME}
+    COMPANIES_TABLE: ${file(./database/serverless.yml):custom.COMPANIES_TABLE_NAME}
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ses:sendTemplatedEmail
+        # Allowing the iam role for SES (Simple Email Service) to only the current stage
+      Resource:
+        - "*"
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        #Restricting the iam role for only the Dynamodb tables at the current stage
+      Resource:
+        - "Fn::ImportValue": ${self:custom.stage}-GameTableArn
+        - "Fn::ImportValue": ${self:custom.stage}-CompaniesTableArn
+
+functions:
+  getRandomGame:
+    handler: src/api/controllers/GameController.getRandomGame
+    events:
+      - http:
+          path: game/random
+          method: get
+          authorizer: aws_iam
+      - schedule:
+          rate: rate(1 minute)
+  getGameById:
+    handler: src/api/controllers/GameController.getGameByID
+    events:
+      - http:
+          path: game/{id}
+          method: get
+          authorizer: aws_iam
